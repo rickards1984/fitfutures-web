@@ -20,3 +20,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     flowType: "pkce",
   },
 });
+
+// Dev-only: expose the client so you can grab your access token / user id from
+// the browser console while testing the API (e.g. creating a placement).
+if (import.meta.env.DEV) {
+  (window as unknown as { supabase: typeof supabase }).supabase = supabase;
+}

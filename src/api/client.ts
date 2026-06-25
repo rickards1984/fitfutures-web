@@ -60,3 +60,44 @@ export function upsertProfile(fullName: string): Promise<Profile> {
     body: JSON.stringify({ full_name: fullName }),
   });
 }
+
+export type LearnerRoute = "route_a" | "route_b";
+export type PlacementStatus = "active" | "referred" | "complete" | "withdrawn";
+
+export interface Placement {
+  id: string;
+  learner_id: string;
+  tutor_id: string | null;
+  supervisor_id: string | null;
+  facility_name: string;
+  route: LearnerRoute;
+  status: PlacementStatus;
+  start_date: string;
+  expected_end_date: string | null;
+  actual_end_date: string | null;
+  planned_weeks: number;
+  current_week_number: number;
+  notes: string | null;
+}
+
+export interface KpiTotalLine {
+  key: string;
+  label: string;
+  actual: number;
+  target: number;
+}
+
+export interface KpiTotals {
+  placement_id: string;
+  weeks_logged: number;
+  lines: KpiTotalLine[];
+}
+
+// The learner's active placement. Throws ApiError(404) when none exists yet.
+export function getMyPlacement(): Promise<Placement> {
+  return apiFetch<Placement>("/v1/placements/mine");
+}
+
+export function getKpiTotals(placementId: string): Promise<KpiTotals> {
+  return apiFetch<KpiTotals>(`/v1/kpi/placement/${placementId}/totals`);
+}
