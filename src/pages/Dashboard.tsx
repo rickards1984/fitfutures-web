@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import PageHeader from "../components/layout/PageHeader";
 import ProgressBar from "../components/ui/ProgressBar";
+import RAGPill from "../components/ui/RAGPill";
+import CoachMessage from "../components/coach/CoachMessage";
 import { usePlacement } from "../hooks/usePlacement";
-import type { KpiTotals, Placement } from "../api/client";
+import type { KpiEntry, KpiTotals, Placement } from "../api/client";
 import { formatDate, routeLabel } from "../utils/format";
 
 const CARDS = [
@@ -11,8 +13,24 @@ const CARDS = [
   { to: "/completion", title: "Completion", desc: "Final reflection & Pass / Refer status" },
 ];
 
-// AI coach banner stays a placeholder until Phase 4 wires the live message.
-function CoachBanner() {
+// The most recent week that actually has a coach message.
+function latestCoachMessage(weeks: KpiEntry[]): string | null {
+  const withMessage = weeks
+    .filter((w) => w.ai_coach_message)
+    .sort((a, b) => b.week_number - a.week_number);
+  return withMessage[0]?.ai_coach_message ?? null;
+}
+
+function CoachBanner({ weeks }: { weeks: KpiEntry[] }) {
+  const message = latestCoachMessage(weeks);
+  if (message) {
+    return (
+      <div className="px-4">
+        <CoachMessage message={message} />
+      </div>
+    );
+  }
+  // Placeholder until the first KPI week is logged.
   return (
     <div className="px-4">
       <div className="rounded-xl border border-brand-accent/30 bg-brand-accent/5 p-4">
@@ -60,6 +78,26 @@ function PlacementSummary({ placement }: { placement: Placement }) {
   );
 }
 
+function RecentWeeks({ weeks }: { weeks: KpiEntry[] }) {
+  if (weeks.length === 0) return null;
+  const recent = [...weeks].sort((a, b) => b.week_number - a.week_number).slice(0, 5);
+  return (
+    <div className="rounded-xl border border-brand-border bg-brand-surface p-4">
+      <h2 className="text-sm font-medium text-brand-text">Recent weeks</h2>
+      <div className="mt-3 space-y-2">
+        {recent.map((w) => (
+          <div key={w.id} className="flex items-center justify-between">
+            <span className="text-xs text-brand-muted">
+              Week {w.week_number} · {formatDate(w.week_commencing)}
+            </span>
+            <RAGPill status={w.overall_status} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function TotalsCard({ totals }: { totals: KpiTotals }) {
   return (
     <div className="rounded-xl border border-brand-border bg-brand-surface p-4">
@@ -90,13 +128,13 @@ function TotalsCard({ totals }: { totals: KpiTotals }) {
 }
 
 export default function Dashboard() {
-  const { placement, totals, loading, noPlacement, error } = usePlacement();
+  const { placement, totals, weeks, loading, noPlacement, error } = usePlacement();
 
   return (
     <>
       <PageHeader title="FitFutures" subtitle="UKFI placement programme" />
 
-      <CoachBanner />
+      <CoachBanner weeks={weeks} />
 
       <div className="mt-4 space-y-3 px-4">
         {loading && (
@@ -122,6 +160,7 @@ export default function Dashboard() {
         )}
 
         {placement && <PlacementSummary placement={placement} />}
+        {placement && <RecentWeeks weeks={weeks} />}
         {totals && <TotalsCard totals={totals} />}
       </div>
 

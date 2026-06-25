@@ -64,6 +64,8 @@ export function upsertProfile(fullName: string): Promise<Profile> {
 export type LearnerRoute = "route_a" | "route_b";
 export type PlacementStatus = "active" | "referred" | "complete" | "withdrawn";
 
+export type RAGStatus = "green" | "amber" | "red" | "no_entry";
+
 export interface Placement {
   id: string;
   learner_id: string;
@@ -77,7 +79,52 @@ export interface Placement {
   actual_end_date: string | null;
   planned_weeks: number;
   current_week_number: number;
+  // Fixed weekly targets (shown beneath each KPI input).
+  wk_target_placement_hours: number;
+  wk_target_study_hours: number;
+  wk_target_member_conversations: number;
+  wk_target_ex_member_contacts: number;
+  wk_target_retention_saves: number;
+  wk_target_campaign_touches: number;
+  wk_target_tasters_booked: number;
+  wk_target_consultations: number;
+  wk_target_conversions: number;
   notes: string | null;
+}
+
+export interface KpiEntry {
+  id: string;
+  placement_id: string;
+  week_number: number;
+  week_commencing: string;
+  actual_placement_hours: number;
+  actual_study_hours: number;
+  actual_member_conversations: number;
+  actual_ex_member_contacts: number;
+  actual_retention_saves: number;
+  actual_campaign_touches: number;
+  actual_tasters_booked: number;
+  actual_consultations: number;
+  actual_conversions: number;
+  reflection: string | null;
+  key_issue: string | null;
+  overall_status: RAGStatus;
+  ai_coach_message: string | null;
+  ai_coach_generated_at: string | null;
+}
+
+export interface KpiWeekSubmit {
+  actual_placement_hours: number;
+  actual_study_hours: number;
+  actual_member_conversations: number;
+  actual_ex_member_contacts: number;
+  actual_retention_saves: number;
+  actual_campaign_touches: number;
+  actual_tasters_booked: number;
+  actual_consultations: number;
+  actual_conversions: number;
+  reflection: string | null;
+  key_issue: string | null;
 }
 
 export interface KpiTotalLine {
@@ -100,4 +147,21 @@ export function getMyPlacement(): Promise<Placement> {
 
 export function getKpiTotals(placementId: string): Promise<KpiTotals> {
   return apiFetch<KpiTotals>(`/v1/kpi/placement/${placementId}/totals`);
+}
+
+export function getKpiWeeks(placementId: string): Promise<KpiEntry[]> {
+  return apiFetch<KpiEntry[]>(`/v1/kpi/placement/${placementId}/weeks`);
+}
+
+// Submit a week's actuals. Resolves with the saved entry, including the AI
+// coach message generated on submission.
+export function submitKpiWeek(
+  placementId: string,
+  weekNumber: number,
+  body: KpiWeekSubmit,
+): Promise<KpiEntry> {
+  return apiFetch<KpiEntry>(
+    `/v1/kpi/placement/${placementId}/week/${weekNumber}`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
 }
