@@ -165,3 +165,74 @@ export function submitKpiWeek(
     { method: "POST", body: JSON.stringify(body) },
   );
 }
+
+// --- Units & task progress ---
+
+export type TaskStatus =
+  | "not_started"
+  | "in_progress"
+  | "complete"
+  | "not_applicable";
+export type UnitStatus = "not_started" | "in_progress" | "complete";
+
+export interface UnitTask {
+  id: string;
+  unit_id: string;
+  task_order: number;
+  description: string;
+  is_mandatory: boolean;
+  requires_evidence: boolean;
+  requires_supervisor_sign: boolean;
+}
+
+export interface Unit {
+  id: string;
+  unit_number: number;
+  title: string;
+  aim: string;
+  is_mandatory: boolean;
+  suggested_hours_min: number | null;
+  suggested_hours_max: number | null;
+  route_applicability: string;
+  tasks: UnitTask[];
+}
+
+export interface TaskProgress {
+  unit_task_id: string;
+  placement_id: string;
+  status: TaskStatus;
+  completed_at: string | null;
+}
+
+export interface UnitProgress {
+  unit_id: string;
+  status: UnitStatus;
+}
+
+export interface PlacementProgress {
+  placement_id: string;
+  units: UnitProgress[];
+  tasks: TaskProgress[];
+}
+
+export function getUnits(): Promise<Unit[]> {
+  return apiFetch<Unit[]>("/v1/units");
+}
+
+export function getPlacementProgress(
+  placementId: string,
+): Promise<PlacementProgress> {
+  return apiFetch<PlacementProgress>(`/v1/progress/placement/${placementId}`);
+}
+
+// Update one task's status; resolves with the saved task progress row.
+export function updateTaskStatus(
+  taskId: string,
+  placementId: string,
+  status: TaskStatus,
+): Promise<TaskProgress> {
+  return apiFetch<TaskProgress>(`/v1/progress/task/${taskId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ placement_id: placementId, status }),
+  });
+}

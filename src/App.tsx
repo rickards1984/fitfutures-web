@@ -10,6 +10,7 @@ import CoachPage from "./pages/CoachPage";
 import EvidencePage from "./pages/EvidencePage";
 import ProfilePage from "./pages/ProfilePage";
 import UnitsPage from "./pages/UnitsPage";
+import UnitDetail from "./pages/UnitDetail";
 import BusinessPage from "./pages/BusinessPage";
 import CompletionPage from "./pages/CompletionPage";
 
@@ -68,6 +69,7 @@ export default function App() {
 
                 {/* Reached from Dashboard cards */}
                 <Route path="/units" element={<UnitsPage />} />
+                <Route path="/units/:unitId" element={<UnitDetail />} />
                 <Route path="/business" element={<BusinessPage />} />
                 <Route path="/completion" element={<CompletionPage />} />
 
