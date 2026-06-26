@@ -236,3 +236,99 @@ export function updateTaskStatus(
     body: JSON.stringify({ placement_id: placementId, status }),
   });
 }
+
+// --- Evidence ---
+
+export interface EvidenceUploadUrl {
+  bucket: string;
+  path: string;
+  token: string;
+  signed_url: string;
+}
+
+export interface EvidenceItem {
+  id: string;
+  placement_id: string;
+  unit_task_id: string | null;
+  kpi_entry_id: string | null;
+  title: string;
+  description: string | null;
+  file_url: string;
+  file_type: string;
+  file_size_bytes: number | null;
+  uploaded_by: string;
+  supervisor_approved: boolean | null;
+  supervisor_approved_at: string | null;
+  created_at: string | null;
+  download_url: string | null;
+}
+
+export function getEvidenceUploadUrl(
+  placementId: string,
+  filename: string,
+  contentType: string,
+): Promise<EvidenceUploadUrl> {
+  return apiFetch<EvidenceUploadUrl>("/v1/evidence/upload-url", {
+    method: "POST",
+    body: JSON.stringify({
+      placement_id: placementId,
+      filename,
+      content_type: contentType,
+    }),
+  });
+}
+
+export function createEvidence(body: {
+  placement_id: string;
+  path: string;
+  title: string;
+  file_type: string;
+  file_size_bytes?: number;
+  unit_task_id?: string | null;
+  description?: string | null;
+}): Promise<EvidenceItem> {
+  return apiFetch<EvidenceItem>("/v1/evidence", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function getEvidence(placementId: string): Promise<EvidenceItem[]> {
+  return apiFetch<EvidenceItem[]>(`/v1/evidence/placement/${placementId}`);
+}
+
+// --- Business milestones ---
+
+export interface BusinessMilestone {
+  id: string;
+  placement_id: string;
+  milestone_key: string;
+  title: string;
+  status: TaskStatus;
+  target_date: string | null;
+  completed_at: string | null;
+  evidence_notes: string | null;
+  blocking_issue: string | null;
+  next_action: string | null;
+}
+
+export function getBusinessMilestones(
+  placementId: string,
+): Promise<BusinessMilestone[]> {
+  return apiFetch<BusinessMilestone[]>(`/v1/business/placement/${placementId}`);
+}
+
+export function updateBusinessMilestone(
+  milestoneId: string,
+  updates: {
+    status?: TaskStatus;
+    evidence_notes?: string | null;
+    target_date?: string | null;
+    next_action?: string | null;
+  },
+): Promise<BusinessMilestone> {
+  return apiFetch<BusinessMilestone>(`/v1/business/${milestoneId}`, {
+    method: "PATCH",
+    body: JSON.stringify(updates),
+  });
+}
