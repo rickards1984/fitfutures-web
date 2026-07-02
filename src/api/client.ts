@@ -332,3 +332,34 @@ export function updateBusinessMilestone(
     body: JSON.stringify(updates),
   });
 }
+
+// --- Coach chat ---
+
+export interface CoachChatMessage {
+  id: string;
+  placement_id: string;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string | null;
+}
+
+export function getCoachMessages(
+  placementId: string,
+): Promise<CoachChatMessage[]> {
+  return apiFetch<CoachChatMessage[]>(
+    `/v1/coach/placement/${placementId}/messages`,
+  );
+}
+
+export function sendCoachChat(
+  placementId: string,
+  message: string,
+): Promise<{
+  user_message: CoachChatMessage;
+  assistant_message: CoachChatMessage;
+}> {
+  return apiFetch(`/v1/coach/placement/${placementId}/chat`, {
+    method: "POST",
+    body: JSON.stringify({ message }),
+  });
+}
