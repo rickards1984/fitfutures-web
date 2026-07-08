@@ -61,6 +61,29 @@ export function upsertProfile(fullName: string): Promise<Profile> {
   });
 }
 
+export function getProfile(): Promise<Profile> {
+  return apiFetch<Profile>("/v1/auth/profile");
+}
+
+// --- Web push ---
+
+export function pushSubscribe(subscription: {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}): Promise<{ ok: boolean }> {
+  return apiFetch("/v1/push/subscribe", {
+    method: "POST",
+    body: JSON.stringify(subscription),
+  });
+}
+
+export function pushUnsubscribe(endpoint: string): Promise<{ ok: boolean }> {
+  return apiFetch("/v1/push/unsubscribe", {
+    method: "POST",
+    body: JSON.stringify({ endpoint }),
+  });
+}
+
 export type LearnerRoute = "route_a" | "route_b";
 export type PlacementStatus = "active" | "referred" | "complete" | "withdrawn";
 
