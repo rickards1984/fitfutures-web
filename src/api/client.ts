@@ -386,3 +386,76 @@ export function sendCoachChat(
     body: JSON.stringify({ message }),
   });
 }
+
+// --- Completion ---
+
+export type CompletionDecision = "pending" | "pass" | "refer";
+
+export interface CompletionReview {
+  placement_id: string;
+  learner_final_reflection: string | null;
+  tutor_decision: CompletionDecision;
+  tutor_feedback: string | null;
+  tutor_id: string | null;
+  decided_at: string | null;
+  certificate_triggered: boolean;
+  certificate_triggered_at: string | null;
+  placement_status: PlacementStatus;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface CompletionRosterItem {
+  placement_id: string;
+  learner_name: string;
+  facility_name: string;
+  placement_status: PlacementStatus;
+  current_week_number: number;
+  planned_weeks: number;
+  decision: CompletionDecision;
+  reflection_submitted: boolean;
+  certificate_triggered: boolean;
+}
+
+export function getCompletionReview(
+  placementId: string,
+): Promise<CompletionReview> {
+  return apiFetch<CompletionReview>(`/v1/completion/placement/${placementId}`);
+}
+
+// The learner's own review for their latest placement (any status, so it still
+// resolves after a Pass has completed the placement). Throws ApiError(404) when
+// the learner has no placement at all.
+export function getMyCompletion(): Promise<CompletionReview> {
+  return apiFetch<CompletionReview>("/v1/completion/mine");
+}
+
+// Learner submits (or updates) their final reflection.
+export function submitCompletion(
+  placementId: string,
+  finalReflection: string,
+): Promise<CompletionReview> {
+  return apiFetch<CompletionReview>(
+    `/v1/completion/placement/${placementId}/submit`,
+    { method: "POST", body: JSON.stringify({ final_reflection: finalReflection }) },
+  );
+}
+
+// Tutor/admin records a Pass or Refer decision.
+export function decideCompletion(
+  placementId: string,
+  decision: "pass" | "refer",
+  feedback: string | null,
+): Promise<CompletionReview> {
+  return apiFetch<CompletionReview>(
+    `/v1/completion/placement/${placementId}/decide`,
+    { method: "POST", body: JSON.stringify({ decision, feedback }) },
+  );
+}
+
+// Tutor/admin: every learner's completion state, for the picker.
+export function getCompletionRoster(): Promise<CompletionRosterItem[]> {
+  return apiFetch<{ items: CompletionRosterItem[] }>(
+    "/v1/completion/roster",
+  ).then((r) => r.items);
+}
