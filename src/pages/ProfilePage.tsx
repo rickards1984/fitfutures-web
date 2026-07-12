@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import PageHeader from "../components/layout/PageHeader";
 import Toggle from "../components/ui/Toggle";
 import { useAuth } from "../auth/AuthProvider";
@@ -87,7 +88,7 @@ function ReminderToggle() {
 }
 
 export default function ProfilePage() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isStaff } = useAuth();
 
   return (
     <>
@@ -100,6 +101,25 @@ export default function ProfilePage() {
           </p>
           <p className="mt-1 text-sm text-brand-text">{user?.email}</p>
         </div>
+
+        {isStaff && (
+          <Link
+            to="/admin"
+            className="block rounded-xl border border-brand-accent/30 bg-brand-accent/5 p-4 transition-colors hover:border-brand-accent/60"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-medium text-brand-text">Admin</h2>
+                <p className="mt-0.5 text-xs text-brand-muted">
+                  Enrol learners and view the placement roster
+                </p>
+              </div>
+              <span className="text-brand-accent" aria-hidden>
+                →
+              </span>
+            </div>
+          </Link>
+        )}
 
         <ReminderToggle />
 

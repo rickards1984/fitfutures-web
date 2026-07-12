@@ -8,11 +8,15 @@ import {
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabaseClient";
-import { upsertProfile } from "../api/client";
+import { upsertProfile, type Profile } from "../api/client";
 
 type AuthState = {
   session: Session | null;
   user: User | null;
+  // The signed-in user's profile row (carries their role). Null until loaded.
+  profile: Profile | null;
+  // True for tutor/admin — used to gate the Admin section.
+  isStaff: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
 };
@@ -31,6 +35,7 @@ function deriveFullName(user: User): string {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   // Guard so the profile bootstrap fires once per signed-in user, not on every
   // token refresh.
@@ -54,13 +59,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const user = nextSession?.user;
       if (user && bootstrappedFor.current !== user.id) {
         bootstrappedFor.current = user.id;
-        // Fire-and-forget: the row may already exist (idempotent server-side).
-        upsertProfile(deriveFullName(user)).catch((err) => {
-          console.error("Profile bootstrap failed", err);
-        });
+        // Idempotent server-side: returns the row (creating it on first login),
+        // which carries the role we gate the Admin section on.
+        upsertProfile(deriveFullName(user))
+          .then(setProfile)
+          .catch((err) => {
+            console.error("Profile bootstrap failed", err);
+          });
       }
       if (!user) {
         bootstrappedFor.current = null;
+        setProfile(null);
       }
     });
 
@@ -73,6 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value: AuthState = {
     session,
     user: session?.user ?? null,
+    profile,
+    isStaff: profile?.role === "tutor" || profile?.role === "admin",
     loading,
     signOut: async () => {
       await supabase.auth.signOut();

@@ -13,6 +13,9 @@ import UnitsPage from "./pages/UnitsPage";
 import UnitDetail from "./pages/UnitDetail";
 import BusinessPage from "./pages/BusinessPage";
 import CompletionPage from "./pages/CompletionPage";
+import AdminPage from "./pages/AdminPage";
+import AdminEnrolPage from "./pages/AdminEnrolPage";
+import AdminLearnerDetailPage from "./pages/AdminLearnerDetailPage";
 
 function FullScreenLoader() {
   return (
@@ -30,6 +33,15 @@ function RequireAuth({ children }: { children: ReactElement }) {
   const { session, loading } = useAuth();
   if (loading) return <FullScreenLoader />;
   if (!session) return <Navigate to="/login" replace />;
+  return children;
+}
+
+// Gate the Admin section to tutor/admin roles. Learners are bounced home.
+// `profile` is null while it loads, so hold on the loader until we know.
+function RequireStaff({ children }: { children: ReactElement }) {
+  const { profile, isStaff } = useAuth();
+  if (!profile) return <FullScreenLoader />;
+  if (!isStaff) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -72,6 +84,32 @@ export default function App() {
                 <Route path="/units/:unitId" element={<UnitDetail />} />
                 <Route path="/business" element={<BusinessPage />} />
                 <Route path="/completion" element={<CompletionPage />} />
+
+                {/* Admin — tutor/admin only (reached from the Profile tab) */}
+                <Route
+                  path="/admin"
+                  element={
+                    <RequireStaff>
+                      <AdminPage />
+                    </RequireStaff>
+                  }
+                />
+                <Route
+                  path="/admin/enrol/:learnerId"
+                  element={
+                    <RequireStaff>
+                      <AdminEnrolPage />
+                    </RequireStaff>
+                  }
+                />
+                <Route
+                  path="/admin/learner/:learnerId"
+                  element={
+                    <RequireStaff>
+                      <AdminLearnerDetailPage />
+                    </RequireStaff>
+                  }
+                />
 
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

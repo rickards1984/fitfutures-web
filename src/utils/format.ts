@@ -18,6 +18,17 @@ export function formatDate(iso: string | null): string {
   });
 }
 
+// The next Monday (or today if today is Monday) as a yyyy-mm-dd string —
+// the sensible default placement start date for a new enrolment.
+export function nextMonday(from: Date = new Date()): string {
+  const d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const daysUntilMonday = (8 - d.getDay()) % 7; // Sun=0 -> 1, Mon=1 -> 0, ...
+  d.setDate(d.getDate() + daysUntilMonday);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
 // e.g. "12 May 2026". For full ISO timestamps (created_at etc.).
 export function formatTimestamp(iso: string | null): string {
   if (!iso) return "—";

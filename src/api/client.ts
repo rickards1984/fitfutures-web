@@ -459,3 +459,79 @@ export function getCompletionRoster(): Promise<CompletionRosterItem[]> {
     "/v1/completion/roster",
   ).then((r) => r.items);
 }
+
+// --- Admin: enrolment & roster (tutor/admin only) ---
+
+export interface AdminLearner {
+  id: string;
+  full_name: string;
+  email: string;
+  created_at: string | null;
+  has_active_placement: boolean;
+}
+
+export interface AdminPlacement {
+  placement_id: string;
+  learner_id: string;
+  learner_name: string;
+  facility_name: string;
+  route: LearnerRoute;
+  current_week_number: number;
+  planned_weeks: number;
+  latest_rag: RAGStatus;
+}
+
+export interface AdminUnitProgressItem {
+  unit_number: number;
+  title: string;
+  status: UnitStatus;
+}
+
+export interface AdminLearnerSummary {
+  learner_id: string;
+  learner_name: string;
+  placement_id: string;
+  facility_name: string;
+  route: LearnerRoute;
+  current_week_number: number;
+  planned_weeks: number;
+  weeks_logged: number;
+  kpi_lines: KpiTotalLine[];
+  units: AdminUnitProgressItem[];
+  units_complete: number;
+  units_total: number;
+}
+
+export function getAdminLearners(): Promise<AdminLearner[]> {
+  return apiFetch<{ items: AdminLearner[] }>("/v1/admin/learners").then(
+    (r) => r.items,
+  );
+}
+
+export function getAdminPlacements(): Promise<AdminPlacement[]> {
+  return apiFetch<{ items: AdminPlacement[] }>("/v1/admin/placements").then(
+    (r) => r.items,
+  );
+}
+
+export function getAdminLearnerSummary(
+  learnerId: string,
+): Promise<AdminLearnerSummary> {
+  return apiFetch<AdminLearnerSummary>(
+    `/v1/admin/learner/${learnerId}/summary`,
+  );
+}
+
+// Enrol a learner onto a placement. Seeds business + study milestones server-side.
+export function createPlacement(body: {
+  learner_id: string;
+  facility_name: string;
+  route: LearnerRoute;
+  start_date: string;
+  planned_weeks: number;
+}): Promise<Placement> {
+  return apiFetch<Placement>("/v1/placements", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
