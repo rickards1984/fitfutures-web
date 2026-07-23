@@ -282,6 +282,8 @@ export interface EvidenceItem {
   uploaded_by: string;
   supervisor_approved: boolean | null;
   supervisor_approved_at: string | null;
+  // Feedback note from staff, shown to the learner when changes are requested.
+  review_feedback: string | null;
   created_at: string | null;
   download_url: string | null;
 }
@@ -479,6 +481,9 @@ export interface AdminPlacement {
   current_week_number: number;
   planned_weeks: number;
   latest_rag: RAGStatus;
+  // Assessor attention signals (Phase 9b).
+  evidence_awaiting_review: number;
+  tasks_completed_since_review: number;
 }
 
 export interface AdminUnitProgressItem {
@@ -533,5 +538,91 @@ export function createPlacement(body: {
   return apiFetch<Placement>("/v1/placements", {
     method: "POST",
     body: JSON.stringify(body),
+  });
+}
+
+// --- Admin: evidence review + assessment checklist (Phase 9b) ---
+
+// One evidence item as an assessor sees it: file + who/when + review state.
+export interface AdminEvidenceItem {
+  id: string;
+  title: string;
+  description: string | null;
+  file_type: string;
+  unit_task_id: string | null;
+  task_description: string | null;
+  uploaded_by_name: string;
+  created_at: string | null;
+  supervisor_approved: boolean | null;
+  supervisor_approved_at: string | null;
+  review_feedback: string | null;
+  reviewed_by_name: string | null;
+  download_url: string | null;
+}
+
+// Evidence grouped under one unit (unit_number null = general bucket).
+export interface AdminEvidenceUnitGroup {
+  unit_number: number | null;
+  title: string;
+  items: AdminEvidenceItem[];
+}
+
+export interface AdminEvidenceResponse {
+  placement_id: string;
+  learner_name: string;
+  groups: AdminEvidenceUnitGroup[];
+}
+
+export interface AdminChecklistTask {
+  task_order: number;
+  description: string;
+  is_mandatory: boolean;
+  requires_evidence: boolean;
+  requires_supervisor_sign: boolean;
+  status: TaskStatus;
+  supervisor_signed: boolean;
+  evidence_count: number;
+}
+
+export interface AdminChecklistUnit {
+  unit_number: number;
+  title: string;
+  status: UnitStatus;
+  tasks: AdminChecklistTask[];
+}
+
+export interface AdminChecklistResponse {
+  placement_id: string;
+  learner_name: string;
+  units: AdminChecklistUnit[];
+}
+
+export function getAdminPlacementEvidence(
+  placementId: string,
+): Promise<AdminEvidenceResponse> {
+  return apiFetch<AdminEvidenceResponse>(
+    `/v1/admin/placement/${placementId}/evidence`,
+  );
+}
+
+export function getAdminPlacementChecklist(
+  placementId: string,
+): Promise<AdminChecklistResponse> {
+  return apiFetch<AdminChecklistResponse>(
+    `/v1/admin/placement/${placementId}/checklist`,
+  );
+}
+
+// Approve an evidence item (approved=true) or request changes (approved=false),
+// with an optional feedback note surfaced to the learner. Resolves with the
+// updated evidence row.
+export function reviewEvidence(
+  evidenceId: string,
+  approved: boolean,
+  feedback: string | null,
+): Promise<EvidenceItem> {
+  return apiFetch<EvidenceItem>(`/v1/admin/evidence/${evidenceId}/review`, {
+    method: "PATCH",
+    body: JSON.stringify({ approved, feedback }),
   });
 }

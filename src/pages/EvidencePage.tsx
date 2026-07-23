@@ -52,6 +52,12 @@ function EvidenceCard({ item }: { item: EvidenceItem }) {
           {formatTimestamp(item.created_at)}
         </p>
         <div className="mt-2">{approvalBadge(item)}</div>
+        {item.supervisor_approved === false && item.review_feedback && (
+          <p className="mt-2 rounded-lg border border-brand-danger/40 bg-brand-danger/5 p-2 text-xs text-brand-text">
+            <span className="text-brand-danger">Assessor feedback:</span>{" "}
+            {item.review_feedback}
+          </p>
+        )}
       </div>
     </div>
   );

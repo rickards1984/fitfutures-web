@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import PageHeader from "../components/layout/PageHeader";
 import RAGPill from "../components/ui/RAGPill";
+import Badge from "../components/ui/Badge";
 import {
   getAdminLearners,
   getAdminPlacements,
@@ -69,6 +70,25 @@ function RosterCard({
           Week {placement.current_week_number} of {placement.planned_weeks}
         </span>
       </div>
+      {(placement.evidence_awaiting_review > 0 ||
+        placement.tasks_completed_since_review > 0) && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {placement.evidence_awaiting_review > 0 && (
+            <Badge
+              tone="accent"
+              label={`${placement.evidence_awaiting_review} to review`}
+            />
+          )}
+          {placement.tasks_completed_since_review > 0 && (
+            <Badge
+              tone="muted"
+              label={`${placement.tasks_completed_since_review} task${
+                placement.tasks_completed_since_review === 1 ? "" : "s"
+              } done since review`}
+            />
+          )}
+        </div>
+      )}
     </button>
   );
 }
