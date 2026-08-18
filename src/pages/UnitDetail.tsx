@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import PageHeader from "../components/layout/PageHeader";
 import Badge from "../components/ui/Badge";
-import { useUnits } from "../hooks/useUnits";
+import { useUnits, type EvidenceConfirmedMap } from "../hooks/useUnits";
 import type { Unit, UnitTask } from "../api/client";
 import {
   TASK_STATUS_META,
@@ -11,6 +12,7 @@ import {
   taskStatusFor,
   type TaskStatusMap,
 } from "../utils/units";
+import { formatDate } from "../utils/format";
 
 function suggestedHours(unit: Unit): string | null {
   const { suggested_hours_min: min, suggested_hours_max: max } = unit;
@@ -68,10 +70,164 @@ function TaskRow({
   );
 }
 
+// The unit's "Evidence checklist" from the UKFI portfolio document, as a table
+// the learner ticks off. A tick is the learner declaring that the evidence is
+// uploaded — it is not a sign-off. Once every row is ticked, they can send the
+// unit to their placement coordinator and tutor for review.
+function EvidenceChecklist({
+  unit,
+  confirmed,
+  requestedAt,
+  onConfirm,
+  onSubmit,
+}: {
+  unit: Unit;
+  confirmed: EvidenceConfirmedMap;
+  requestedAt: string | null;
+  onConfirm: (itemId: string, next: boolean) => void;
+  onSubmit: () => Promise<string>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [notified, setNotified] = useState<string | null>(null);
+
+  if (unit.evidence_items.length === 0) return null;
+
+  const total = unit.evidence_items.length;
+  const done = unit.evidence_items.filter((i) => confirmed[i.id]).length;
+  const allDone = done === total;
+
+  async function submit() {
+    setBusy(true);
+    setSubmitError(null);
+    try {
+      setNotified(await onSubmit());
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error
+          ? err.message
+          : "Couldn't send this unit for review — please try again.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <PageHeader title="Evidence you need to upload" />
+      <div className="px-4">
+        <p className="pb-3 text-sm text-brand-muted">
+          Upload each item on the Evidence tab, then tick it here to confirm.
+        </p>
+
+        <div className="overflow-hidden rounded-xl border border-brand-border bg-brand-surface">
+          <div className="flex items-center justify-between border-b border-brand-border px-3 py-2">
+            <span className="text-xs uppercase tracking-wide text-brand-muted">
+              Evidence required
+            </span>
+            <span className="text-xs tabular-nums text-brand-muted">
+              {done} / {total} confirmed
+            </span>
+          </div>
+
+          <ul className="divide-y divide-brand-border">
+            {unit.evidence_items.map((item) => {
+              const isConfirmed = confirmed[item.id] ?? false;
+              return (
+                <li key={item.id}>
+                  <label className="flex cursor-pointer items-start gap-3 p-3">
+                    <input
+                      type="checkbox"
+                      checked={isConfirmed}
+                      onChange={(e) => onConfirm(item.id, e.target.checked)}
+                      className="mt-0.5 h-4 w-4 shrink-0 rounded border-brand-border-md bg-brand-bg accent-brand-accent"
+                    />
+                    <span
+                      className={`text-sm ${
+                        isConfirmed ? "text-brand-muted" : "text-brand-text"
+                      }`}
+                    >
+                      {item.description}
+                    </span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        <div className="mt-3 space-y-3">
+          <Link
+            to="/evidence"
+            className="block rounded-xl border border-brand-border bg-brand-surface p-3 text-center text-sm text-brand-accent transition-colors hover:border-brand-border-md"
+          >
+            Go to Evidence
+          </Link>
+
+          {requestedAt ? (
+            <div className="rounded-xl border border-brand-success/30 bg-brand-success/5 p-4">
+              <p className="text-sm text-brand-success">
+                Sent for review on {formatDate(requestedAt)}.
+              </p>
+              <p className="mt-1 text-xs text-brand-muted">
+                Your placement coordinator and tutor have been notified. Untick
+                an item if you need to change something.
+              </p>
+            </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={submit}
+                disabled={!allDone || busy}
+                className="w-full rounded-xl bg-brand-accent py-2.5 text-sm font-medium text-brand-bg transition-opacity disabled:opacity-40"
+              >
+                {busy ? "Sending…" : "Send to coordinator & tutor for review"}
+              </button>
+              {!allDone && (
+                <p className="text-center text-xs text-brand-muted">
+                  Tick all {total} items to send this unit for review.
+                </p>
+              )}
+            </>
+          )}
+
+          {notified === "skipped" && (
+            <p className="text-xs text-brand-warning">
+              Request recorded, but the notification email is not configured —
+              tell your coordinator directly.
+            </p>
+          )}
+          {notified === "failed" && (
+            <p className="text-xs text-brand-warning">
+              Request recorded, but the notification email failed to send —
+              tell your coordinator directly.
+            </p>
+          )}
+          {submitError && (
+            <p className="text-xs text-brand-danger">{submitError}</p>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function UnitDetail() {
   const { unitId } = useParams();
-  const { units, taskStatus, loading, noPlacement, error, setTaskStatus } =
-    useUnits();
+  const {
+    units,
+    taskStatus,
+    evidenceConfirmed,
+    reviewRequested,
+    loading,
+    noPlacement,
+    error,
+    setTaskStatus,
+    setEvidenceConfirmed,
+    submitUnitForReview,
+  } = useUnits();
 
   const unit = units.find((u) => String(u.unit_number) === unitId);
 
@@ -139,6 +295,17 @@ export default function UnitDetail() {
               />
             ))}
           </div>
+
+          <EvidenceChecklist
+            key={unit.id}
+            unit={unit}
+            confirmed={evidenceConfirmed}
+            requestedAt={reviewRequested[unit.id] ?? null}
+            onConfirm={(itemId, next) =>
+              setEvidenceConfirmed(itemId, unit.id, next)
+            }
+            onSubmit={() => submitUnitForReview(unit.id)}
+          />
         </>
       )}
     </>

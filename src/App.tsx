@@ -11,6 +11,7 @@ import EvidencePage from "./pages/EvidencePage";
 import ProfilePage from "./pages/ProfilePage";
 import UnitsPage from "./pages/UnitsPage";
 import UnitDetail from "./pages/UnitDetail";
+import ProgrammeGuidePage from "./pages/ProgrammeGuidePage";
 import BusinessPage from "./pages/BusinessPage";
 import CompletionPage from "./pages/CompletionPage";
 import AdminPage from "./pages/AdminPage";
@@ -80,6 +81,7 @@ export default function App() {
                 <Route path="/profile" element={<ProfilePage />} />
 
                 {/* Reached from Dashboard cards */}
+                <Route path="/guide" element={<ProgrammeGuidePage />} />
                 <Route path="/units" element={<UnitsPage />} />
                 <Route path="/units/:unitId" element={<UnitDetail />} />
                 <Route path="/business" element={<BusinessPage />} />

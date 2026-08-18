@@ -217,7 +217,16 @@ export interface Unit {
   suggested_hours_min: number | null;
   suggested_hours_max: number | null;
   route_applicability: string;
+  evidence_items: UnitEvidenceItem[];
   tasks: UnitTask[];
+}
+
+/** One "Evidence required" row from a unit's Evidence checklist. */
+export interface UnitEvidenceItem {
+  id: string;
+  unit_id: string;
+  item_order: number;
+  description: string;
 }
 
 export interface TaskProgress {
@@ -230,12 +239,30 @@ export interface TaskProgress {
 export interface UnitProgress {
   unit_id: string;
   status: UnitStatus;
+  evidence_review_requested_at: string | null;
+}
+
+/** A learner's confirmation that one checklist item has been uploaded. */
+export interface EvidenceConfirmation {
+  unit_evidence_item_id: string;
+  placement_id: string;
+  confirmed: boolean;
+  confirmed_at: string | null;
 }
 
 export interface PlacementProgress {
   placement_id: string;
   units: UnitProgress[];
   tasks: TaskProgress[];
+  evidence_confirmations: EvidenceConfirmation[];
+}
+
+export interface UnitReviewRequest {
+  unit_id: string;
+  placement_id: string;
+  evidence_review_requested_at: string;
+  /** Resend outcome for the coordinator/tutor email: sent / failed / skipped. */
+  notification_status: string;
 }
 
 export function getUnits(): Promise<Unit[]> {
@@ -257,6 +284,30 @@ export function updateTaskStatus(
   return apiFetch<TaskProgress>(`/v1/progress/task/${taskId}`, {
     method: "PATCH",
     body: JSON.stringify({ placement_id: placementId, status }),
+  });
+}
+
+// Tick or untick one evidence checklist item for this placement.
+export function confirmEvidenceItem(
+  itemId: string,
+  placementId: string,
+  confirmed: boolean,
+): Promise<EvidenceConfirmation> {
+  return apiFetch<EvidenceConfirmation>(`/v1/progress/evidence-item/${itemId}`, {
+    method: "PUT",
+    body: JSON.stringify({ placement_id: placementId, confirmed }),
+  });
+}
+
+// Send a unit's evidence to the placement coordinator and tutor. Rejects with
+// ApiError(400) if any checklist item is still unconfirmed.
+export function requestUnitReview(
+  unitId: string,
+  placementId: string,
+): Promise<UnitReviewRequest> {
+  return apiFetch<UnitReviewRequest>(`/v1/progress/unit/${unitId}/request-review`, {
+    method: "POST",
+    body: JSON.stringify({ placement_id: placementId }),
   });
 }
 

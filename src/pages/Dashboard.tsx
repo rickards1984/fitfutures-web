@@ -8,6 +8,7 @@ import type { KpiEntry, KpiTotals, Placement } from "../api/client";
 import { formatDate, routeLabel } from "../utils/format";
 
 const CARDS = [
+  { to: "/guide", title: "Programme Guide", desc: "How the programme works, your targets and how you pass" },
   { to: "/units", title: "Units & Tasks", desc: "6 programme units and evidence checklists" },
   { to: "/business", title: "Start Your Business", desc: "Business start-up milestones" },
   { to: "/completion", title: "Completion", desc: "Final reflection & Pass / Refer status" },
