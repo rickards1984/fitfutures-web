@@ -70,13 +70,24 @@ function RosterCard({
           Week {placement.current_week_number} of {placement.planned_weeks}
         </span>
       </div>
-      {(placement.evidence_awaiting_review > 0 ||
+      {(placement.units_awaiting_review > 0 ||
+        placement.evidence_awaiting_review > 0 ||
         placement.tasks_completed_since_review > 0) && (
         <div className="mt-2 flex flex-wrap gap-2">
-          {placement.evidence_awaiting_review > 0 && (
+          {placement.units_awaiting_review > 0 && (
             <Badge
               tone="accent"
-              label={`${placement.evidence_awaiting_review} to review`}
+              label={`${placement.units_awaiting_review} unit${
+                placement.units_awaiting_review === 1 ? "" : "s"
+              } to assess`}
+            />
+          )}
+          {placement.evidence_awaiting_review > 0 && (
+            <Badge
+              tone="muted"
+              label={`${placement.evidence_awaiting_review} file${
+                placement.evidence_awaiting_review === 1 ? "" : "s"
+              } to review`}
             />
           )}
           {placement.tasks_completed_since_review > 0 && (

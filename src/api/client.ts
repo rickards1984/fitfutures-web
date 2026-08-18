@@ -240,6 +240,9 @@ export interface UnitProgress {
   unit_id: string;
   status: UnitStatus;
   evidence_review_requested_at: string | null;
+  assessment_outcome: UnitAssessmentOutcome | null;
+  assessment_feedback: string | null;
+  assessed_at: string | null;
 }
 
 /** A learner's confirmation that one checklist item has been uploaded. */
@@ -535,6 +538,7 @@ export interface AdminPlacement {
   // Assessor attention signals (Phase 9b).
   evidence_awaiting_review: number;
   tasks_completed_since_review: number;
+  units_awaiting_review: number;
 }
 
 export interface AdminUnitProgressItem {
@@ -635,11 +639,47 @@ export interface AdminChecklistTask {
   evidence_count: number;
 }
 
+/** Has a unit's evidence achieved the unit's aim? null = not yet assessed. */
+export type UnitAssessmentOutcome = "achieved" | "not_achieved";
+
+export interface AdminChecklistEvidenceItem {
+  id: string;
+  item_order: number;
+  description: string;
+  confirmed: boolean;
+  confirmed_at: string | null;
+}
+
+export interface AdminUnitAssessment {
+  outcome: UnitAssessmentOutcome | null;
+  feedback: string | null;
+  assessed_by_name: string | null;
+  assessed_at: string | null;
+}
+
 export interface AdminChecklistUnit {
+  unit_id: string;
   unit_number: number;
   title: string;
+  aim: string;
+  is_mandatory: boolean;
   status: UnitStatus;
   tasks: AdminChecklistTask[];
+  evidence_items: AdminChecklistEvidenceItem[];
+  evidence_confirmed_count: number;
+  evidence_file_count: number;
+  evidence_files_pending_review: number;
+  evidence_review_requested_at: string | null;
+  assessment: AdminUnitAssessment;
+}
+
+export interface AdminUnitAssessmentResult {
+  placement_id: string;
+  unit_id: string;
+  unit_number: number;
+  assessment: AdminUnitAssessment;
+  /** Resend outcome for the learner notification: sent / failed / skipped. */
+  notification_status: string;
 }
 
 export interface AdminChecklistResponse {
@@ -661,6 +701,20 @@ export function getAdminPlacementChecklist(
 ): Promise<AdminChecklistResponse> {
   return apiFetch<AdminChecklistResponse>(
     `/v1/admin/placement/${placementId}/checklist`,
+  );
+}
+
+// Record whether a unit's evidence achieved the unit's aim. Feedback is
+// required by the API when outcome is "not_achieved".
+export function assessUnit(
+  placementId: string,
+  unitId: string,
+  outcome: UnitAssessmentOutcome,
+  feedback: string | null,
+): Promise<AdminUnitAssessmentResult> {
+  return apiFetch<AdminUnitAssessmentResult>(
+    `/v1/admin/placement/${placementId}/unit/${unitId}/assessment`,
+    { method: "PATCH", body: JSON.stringify({ outcome, feedback }) },
   );
 }
 

@@ -10,6 +10,7 @@ import {
   type Placement,
   type TaskStatus,
   type Unit,
+  type UnitAssessmentOutcome,
 } from "../api/client";
 import type { TaskStatusMap } from "../utils/units";
 
@@ -17,6 +18,13 @@ import type { TaskStatusMap } from "../utils/units";
 export type EvidenceConfirmedMap = Record<string, boolean>;
 /** unit id -> when the unit was sent for review, if it has been. */
 export type ReviewRequestedMap = Record<string, string | null>;
+/** unit id -> the assessor's decision on the unit, once one exists. */
+export type UnitAssessment = {
+  outcome: UnitAssessmentOutcome;
+  feedback: string | null;
+  assessedAt: string | null;
+};
+export type UnitAssessmentMap = Record<string, UnitAssessment>;
 
 type UnitsState = {
   placement: Placement | null;
@@ -24,6 +32,7 @@ type UnitsState = {
   taskStatus: TaskStatusMap;
   evidenceConfirmed: EvidenceConfirmedMap;
   reviewRequested: ReviewRequestedMap;
+  unitAssessment: UnitAssessmentMap;
   loading: boolean;
   noPlacement: boolean;
   error: string | null;
@@ -40,6 +49,7 @@ export function useUnits() {
     taskStatus: {},
     evidenceConfirmed: {},
     reviewRequested: {},
+    unitAssessment: {},
     loading: true,
     noPlacement: false,
     error: null,
@@ -63,8 +73,16 @@ export function useUnits() {
           evidenceConfirmed[c.unit_evidence_item_id] = c.confirmed;
         }
         const reviewRequested: ReviewRequestedMap = {};
+        const unitAssessment: UnitAssessmentMap = {};
         for (const u of progress.units) {
           reviewRequested[u.unit_id] = u.evidence_review_requested_at;
+          if (u.assessment_outcome) {
+            unitAssessment[u.unit_id] = {
+              outcome: u.assessment_outcome,
+              feedback: u.assessment_feedback,
+              assessedAt: u.assessed_at,
+            };
+          }
         }
         setState({
           placement,
@@ -72,6 +90,7 @@ export function useUnits() {
           taskStatus,
           evidenceConfirmed,
           reviewRequested,
+          unitAssessment,
           loading: false,
           noPlacement: false,
           error: null,

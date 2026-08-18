@@ -2,7 +2,11 @@ import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import PageHeader from "../components/layout/PageHeader";
 import Badge from "../components/ui/Badge";
-import { useUnits, type EvidenceConfirmedMap } from "../hooks/useUnits";
+import {
+  useUnits,
+  type EvidenceConfirmedMap,
+  type UnitAssessment,
+} from "../hooks/useUnits";
 import type { Unit, UnitTask } from "../api/client";
 import {
   TASK_STATUS_META,
@@ -78,12 +82,14 @@ function EvidenceChecklist({
   unit,
   confirmed,
   requestedAt,
+  assessment,
   onConfirm,
   onSubmit,
 }: {
   unit: Unit;
   confirmed: EvidenceConfirmedMap;
   requestedAt: string | null;
+  assessment: UnitAssessment | null;
   onConfirm: (itemId: string, next: boolean) => void;
   onSubmit: () => Promise<string>;
 }) {
@@ -96,6 +102,8 @@ function EvidenceChecklist({
   const total = unit.evidence_items.length;
   const done = unit.evidence_items.filter((i) => confirmed[i.id]).length;
   const allDone = done === total;
+  // An achieved unit is finished — don't offer to resubmit it for review.
+  const achieved = assessment?.outcome === "achieved";
 
   async function submit() {
     setBusy(true);
@@ -165,7 +173,43 @@ function EvidenceChecklist({
             Go to Evidence
           </Link>
 
-          {requestedAt ? (
+          {assessment && (
+            <div
+              className={`rounded-xl border p-4 ${
+                assessment.outcome === "achieved"
+                  ? "border-brand-success/40 bg-brand-success/5"
+                  : "border-brand-warning/40 bg-brand-warning/5"
+              }`}
+            >
+              <p
+                className={`text-sm font-medium ${
+                  assessment.outcome === "achieved"
+                    ? "text-brand-success"
+                    : "text-brand-warning"
+                }`}
+              >
+                {assessment.outcome === "achieved"
+                  ? "Achieved"
+                  : "Not yet achieved"}
+              </p>
+              <p className="mt-0.5 text-xs text-brand-muted">
+                Assessed {formatDate(assessment.assessedAt)}
+              </p>
+              {assessment.feedback && (
+                <p className="mt-2 whitespace-pre-wrap text-sm text-brand-text">
+                  {assessment.feedback}
+                </p>
+              )}
+              {assessment.outcome === "not_achieved" && (
+                <p className="mt-2 text-xs text-brand-muted">
+                  Work through the feedback, update your evidence, then send the
+                  unit for review again.
+                </p>
+              )}
+            </div>
+          )}
+
+          {achieved ? null : requestedAt ? (
             <div className="rounded-xl border border-brand-success/30 bg-brand-success/5 p-4">
               <p className="text-sm text-brand-success">
                 Sent for review on {formatDate(requestedAt)}.
@@ -221,6 +265,7 @@ export default function UnitDetail() {
     taskStatus,
     evidenceConfirmed,
     reviewRequested,
+    unitAssessment,
     loading,
     noPlacement,
     error,
@@ -301,6 +346,7 @@ export default function UnitDetail() {
             unit={unit}
             confirmed={evidenceConfirmed}
             requestedAt={reviewRequested[unit.id] ?? null}
+            assessment={unitAssessment[unit.id] ?? null}
             onConfirm={(itemId, next) =>
               setEvidenceConfirmed(itemId, unit.id, next)
             }
